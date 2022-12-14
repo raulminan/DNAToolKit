@@ -1,0 +1,1 @@
+from .read_functions import read_fasta, read_fastq
