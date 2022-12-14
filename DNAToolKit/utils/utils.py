@@ -1,106 +1,155 @@
-"""utility functions for DNAToolKit"""
+"utils functions for DNAToolKit"
 
-def edit_distance(x: str, y: str) -> int:
-    """Computes the edit distance between two strings using dynamic programming.
-
-    The function fills up a matrix D of the edit distances of every prefix in x and y:
-    In this matrix, every element D[i, j] represents the edit distance between x[:i] and
-    y[:j].
-
-    Matrix D:
-
-     e G C T A T A C
-   e 0 1 2 3 4 5 6 7
-   G 1 
-   C 2
-   G 3
-   T 4
-   A 5
-   T 6
-   G 7
-
-   The final edit distance is given by the element in the bottom right (D[-1][-1])
-
-    Parameters
-    ----------
-    x : str
-        first string
-    y : str
-        second string
-
-    Returns
-    -------
-    int
-        edit distance between x and y
-    """
-    D = []
-
-    # initialize empty matrix
-    for i in range(len(x) + 1):
-        D.append([0] * (len(y)+1))
-    
-    # fill first row and first columns
-    for i in range(len(x) + 1):
-        D[i][0] = i
-
-    for i in range(len(y) + 1):
-        D[0][i] = i
-
-    for i in range(1, len(x) + 1):
-        for j in range(1, len(y) + 1):
-            dist_hor = D[i][j-1] + 1
-            dist_ver = D[i-1][j] + 1
-            if x[i-1] == y[j-1]:
-                dist_diag = D[i-1][j-1]
-            else:
-                dist_diag = D[i-1][j-1] + 1  
-
-            D[i][j] = min(dist_hor, dist_ver, dist_diag)
-
-    return D[-1][-1]
-
-def edit_distance_fewest_edits(pattern: str, text: str) -> int:
-    """Computes the edit distance of the match between P and T with 
-    the fewest edits
+def reverse_complement(pattern) -> str:
+    """Returns the reverse complement of a DNA string
 
     Parameters
     ----------
     pattern : str
-        pattern to match against text
-    text : str
-        text to find pattern in
+        DNA string
+
+    Returns
+    -------
+    str
+        reverse complement of pattern
+    """
+    bases = {
+        "A": "T",
+        "C": "G",
+        "G": "C",
+        "T": "A",
+    }
+    
+    complement = ""
+    
+    for i in pattern:
+        complement += bases[i]
+    
+    reverse_complement_ = complement[::-1]
+    return reverse_complement_
+
+def number_to_symbol(index: int) -> str:
+    """Converts a number into a DNA basa based on lexicographic order"""
+    numb_to_symb = {
+        0: "A",
+        1: "C",
+        2: "G",
+        3: "T"
+    }
+    return numb_to_symb[index]
+
+def symbol_to_number(symbol: str) -> int:
+    """Converts a DNA base into a int based on lexicographic order"""
+    values = {
+        "A": 0,
+        "C": 1,
+        "G": 2,
+        "T": 3
+    }
+    return values[symbol.upper()]
+
+def prefix(pattern: str) -> str:
+    """Returns all but the last letter of a string"""
+    return pattern[:-1]
+
+def suffix(pattern: str) -> str:
+    """Returns a string without the first letter"""
+    return pattern[1:]
+
+def first_symbol(pattern: str) -> str:
+    """Returns the first letter of a string"""
+    return pattern[0]
+
+def last_symbol(pattern: str) -> str:
+    """Returns the last letter of a string"""
+    return pattern[-1]
+
+def quotient(index: int, k: int) -> int:
+    return index // k
+
+def remainder(index: int, k: int) -> int:
+    return index % k
+
+def number_to_pattern(index: int, k: int) -> str:
+    """Compute a DNA string (DNA pattern) given an integer that represents its 
+    position when all patterns of length k are ordered lexicographically
+
+    Parameters
+    ----------
+    index : int
+        position that the pattern would occupy when ordered lexicographically
+    k : int
+        length of the pattern
+
+    Returns
+    -------
+    str
+        DNA pattern
+    """
+    if k == 1:
+        return number_to_symbol(index)
+    
+    prefix_index = quotient(index, 4)
+    remainder_ = remainder(index, 4)
+    symbol = number_to_symbol(remainder_)
+    prefix_pattern = number_to_pattern(prefix_index, k-1)
+    
+    return prefix_pattern + symbol
+
+def pattern_to_number(pattern: str) -> int:
+    """Given a DNA string, convert it to a number corresponding to
+    its position when ordered lexicographically
+
+    Parameters
+    ----------
+    pattern : str
+        DNA string to convert to a number
 
     Returns
     -------
     int
-        edit distance
+    
     """
-    D = []
-    # init 0-filled matrix
-    for i in range(len(pattern) + 1):
-        D.append([0] * (len(text) + 1))
+    if not pattern:
+        return 0
     
-    # fill first column
-    for i in range(len(pattern)+1):
-        D[i][0] = i 
+    prefix_ = prefix(pattern)
+    symbol = last_symbol(pattern)
+    return 4 * pattern_to_number(prefix_) + symbol_to_number(symbol)
+
+def minimum_skew(genome: str) -> str:
+    """Defines the skew of a DNA string, denoted skew(genome) as the difference
+    between the total number of occurrences of "G" and "C" in Genome
     
-    # note: 
-    # There's no need to init the first row with ascending values
-    # We'll init the first row with all 0 because we don't know ahead
-    # of time where pattern will occur within text, so every offset
-    # is equally likely.
+    Let Prefix_i(genome) denote the prefix (i.e., initial subtring) of genome of 
+    length i
 
-    for i in range(1, len(pattern) + 1):
-        for j in range(1, len(text) + 1):
-            dist_hor = D[i][j-1] + 1
-            dist_ver = D[i-1][j] + 1
-            if pattern[i-1] == text[j-1]:
-                dist_diag = D[i-1][j-1]
-            else:
-                dist_diag = D[i-1][j-1] + 1  
+    Parameters
+    ----------
+    genome : str
+        A DNA string
 
-            D[i][j] = min(dist_hor, dist_ver, dist_diag)
-
-    # the lowest edit distance is given my the min in the last row
-    min_distance = min(D[-1])
-    return min_distance
+    Returns
+    -------
+    str
+        all integers i minimizing skew(prefix_i(genome)) over all values of i from
+        0 to len(genome) in a string
+    
+    Example
+    --------
+    skew(prefix_i("CATGGGCATCGGCCATACGCC")) are:
+    0 -1 -1 -1 0 1 2 1 1 1 0 1 2 1 0 0 0 0 -1 0 -1 -2
+    """
+    skew = [0] # first value is always 0, since its the skew for a subtring with
+               # length 0
+    c_count = 0
+    g_count = 0
+    for i in range(0, len(genome)):
+        if genome[i] == "C":
+            c_count += 1
+        elif genome[i] == "G":
+            g_count += 1
+        skew.append(g_count-c_count)
+        
+    indices = [str(i) for i, x in enumerate(skew) if x == min(skew)]
+    return " ".join(indices)

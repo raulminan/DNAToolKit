@@ -2,8 +2,6 @@
 from .Index import Index
 from .SubseqIndex import SubseqIndex
 
-
-
 def substring_approximate_matching(pattern: str,
                                    text: str,
                                    max_mismatches: int,
